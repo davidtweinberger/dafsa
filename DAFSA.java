@@ -69,9 +69,23 @@ public class DAFSA {
 		private HashMap<Character, DAFSA_Node> _edges;
 
 		public DAFSA_Node(){
-			_id = DAFSA_Node.currentID; DAFSA_Node.currentID++;
+			_id = new Integer(DAFSA_Node.currentID); DAFSA_Node.currentID++;
 			_final = false;
 			_edges = new HashMap<Character, DAFSA_Node>();
+		}
+
+		@Override
+		public boolean equals(Object obj){
+			return ((DAFSA_Node) obj).toString().equals(toString());
+		}
+
+		@Override
+		public int hashCode(){
+			int hash = 1;
+			hash += 17*_id;
+			hash += 31*_final.hashCode();
+			hash += 13*_edges.hashCode();
+			return hash;
 		}
 
 		//representation of this node as a string
@@ -91,15 +105,9 @@ public class DAFSA {
 			return sb.toString();
 		}
 
-		//tests for equality between two nodes
-		public Boolean isEqualTo(DAFSA_Node node){
-			return (toString().equals(node.toString()));
-		}
-
 		//accessors
 		public int getId(){ return _id; }
 		public Boolean getFinal(){ return _final; }
-		public HashMap<Character, DAFSA_Node> getEdges(){ return _edges; }
 
 		//mutators
 		public void setId(int i){ _id = i; }
@@ -122,11 +130,16 @@ public class DAFSA {
 			return _edges.size();
 		}
 
+		public HashMap<Character, DAFSA_Node> getEdges(){
+			return _edges;
+		}
+
 	}
 
 	public void insert(String word){
 		//if word is alphabetically before the previous word
 		if (_previousWord.compareTo(word) > 0) {
+			System.err.println("Inserted in wrong order:" + _previousWord + ", " + word);
 			return;
 		}
 
@@ -152,12 +165,7 @@ public class DAFSA {
 			node = _uncheckedNodes.get(_uncheckedNodes.size() - 1).node;
 		}
 
-		String remainingLetters;
-		if (prefix < word.length()){
-			remainingLetters = word.substring(prefix); //the prefix+1th character to the end of the string
-		} else {
-			remainingLetters = "";
-		}
+		String remainingLetters = word.substring(prefix); //the prefix+1th character to the end of the string
 
 		for (int j=0; j<remainingLetters.length(); j++){
 			DAFSA_Node nextNode = new DAFSA_Node();
@@ -172,18 +180,31 @@ public class DAFSA {
 
 	}
 
-	public void minimize(int downTo){ //TODO check this carefully
+	public void minimize(int downTo){
 		// proceed from the leaf up to a certain point
-
-		for (int i = _uncheckedNodes.size() - 1; i > downTo; i--){ 
+		for (int i = _uncheckedNodes.size() - 1; i >= downTo; i--){ 
 			Triple t = _uncheckedNodes.get(i);
+			java.util.Iterator<DAFSA_Node> iter = _minimizedNodes.iterator();
+			Boolean foundMatch = false;
+			while (iter.hasNext()){
+				DAFSA_Node match = iter.next();
+				if (t.next.equals(match)){
+					//replace the child with the previously encountered one
+					t.node.addEdge(t.letter, t.next);
+					foundMatch = true;
+					break;
+				}
+			}
+			if (!foundMatch){
+				_minimizedNodes.add(t.next);
+			}
+			_uncheckedNodes.remove(i);/*
 			if (_minimizedNodes.contains(t.next)){
-				//replace the child with the previously encountered one
 				t.node.addEdge(t.letter, t.next);
 			} else {
 				_minimizedNodes.add(t.next);
 			}
-			_uncheckedNodes.remove(_uncheckedNodes.size() - 1);
+			_uncheckedNodes.remove(i);*/
 		}
 	}
 
@@ -217,6 +238,7 @@ public class DAFSA {
 		DAFSA_Node curr;
 		while (iter.hasNext()) {
 			curr = iter.next();
+			System.out.println(curr.toString());
 			count += curr.numEdges();
 		}
 		return count;
@@ -235,12 +257,15 @@ public class DAFSA {
 				String nextline = scanner
 									.nextLine()
 									.toLowerCase()
-									.replaceAll("(?!\")[\\p{Punct}&&[^']]", " ")
+									.replaceAll("\n", "")
 									.replaceAll("'", "");
 				String[] words = nextline.split(" ");
 				for (String word : words){
 					insert(word); //inserts into the data structure
 					wordCount++;
+					if (wordCount % 1000 == 0){
+						System.out.println(wordCount);
+					}
 				}
 			}
 		} catch (IOException ioe){
@@ -260,5 +285,8 @@ public class DAFSA {
 		System.out.println("Finished! Inserted " + global_count + " words from " + args.length + " files.");
 		System.out.println("Node count: " + d.nodeCount());
 		System.out.println("Edge count: " + d.edgeCount());
+
+
+		System.out.println("contains hello: " + d.contains("hello"));
 	}
 }
