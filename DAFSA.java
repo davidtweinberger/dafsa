@@ -76,9 +76,18 @@ public class DAFSA {
 
 		@Override
 		public boolean equals(Object obj){
-			return ((DAFSA_Node) obj).toString().equals(toString());
+			System.out.println("called");
+			if (this == obj){
+				return true;
+			}
+			if (obj == null){
+				return false;
+			}
+			DAFSA_Node other = (DAFSA_Node) obj;
+			return (_id == other.getId() && _final == other.getFinal() && _edges == other.getEdges());
 		}
 
+		/*
 		@Override
 		public int hashCode(){
 			int hash = 1;
@@ -87,6 +96,7 @@ public class DAFSA {
 			hash += 13*_edges.hashCode();
 			return hash;
 		}
+		*/
 
 		//representation of this node as a string
 		public String toString(){
